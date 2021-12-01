@@ -46,6 +46,23 @@ void CheckForConnections()
       while (client.available()>0) {
         String req = client.readStringUntil('\r');
         Serial.println(req);
+
+        // Json strucutre {"username": "john123", "password": "adminpassword", "message": 0}
+        // 0 means "unlock" the door, 1 means "lock" the door
+
+        // Read the request as json. check the username and password are a match to previously saved values
+
+        // If it they are good, read "message" portion of json
+        // If 1 lock the door
+        // If 0 unlock the door
+
+
+        // If username and pass do not match, send back nothing
+
+        // If light was changed, send back new state of light
+
+        // Also need to check if the light is changed in general (like when the button click used to turn on/off light)
+        // Then if it changes, check if a client is connected, if so, send back state of LED
         
         client.println("hello world");
 
