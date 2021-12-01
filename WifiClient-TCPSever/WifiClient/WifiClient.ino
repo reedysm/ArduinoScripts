@@ -13,7 +13,7 @@ void setup() {
 
 void initializeWifi() {
   Serial.begin(115200);
-    // WiFi.mode(WIFI_STA);
+    WiFi.mode(WIFI_STA);
     WiFi.begin(ssid, password);
     if (WiFi.waitForConnectResult() != WL_CONNECTED) {
         Serial.println("WiFi Failed");
@@ -47,7 +47,8 @@ void CheckForConnections()
         String req = client.readStringUntil('\r');
         Serial.println(req);
         
-        client.write("A");
+        client.println("hello world");
+
       }
  
       delay(10);
