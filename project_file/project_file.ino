@@ -199,7 +199,6 @@ void endBluetoothConnection(){
     SerialBT.flush();  
     SerialBT.disconnect();
     SerialBT.end();
-    digitalWrite(LED_PIN, LOW);
 }
 
 /********************************************************
