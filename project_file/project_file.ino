@@ -21,8 +21,6 @@ int responseIndex = 0;
 
 const uint ServerPort = 5679;
 WiFiServer wifiServer(ServerPort);
-const char * ssid = "dormsecure";
-const char * wifiPassword = "wiredisfaster";
 String ipAddress = "";
 
 //timeout 300000 is 5 minutes in milliseconds
@@ -103,25 +101,54 @@ void handleBluetooth(){
 void sendResponseToBluetooth(String message){
   JSONVar myObject = parseStringtoJSON(message);
 
+  bool ssidGiven = 0;
+  bool passGiven = 0;
+  
   if (myObject.hasOwnProperty("username")) {
-//    Serial.print("myObject[\"username\"] = ");
-//    Serial.println(myObject["username"]);
     user = myObject["username"];
     Serial.print("\nUsername set");
   }
 
   
   if (myObject.hasOwnProperty("password")) {
-//    Serial.print("myObject[\"password\"] = ");
-//    Serial.println(myObject["password"]);
     password = myObject["password"];
     Serial.print("\nPassword set");
-
   }
-  uint8_t ledValue = digitalRead(BUTTON_PIN);
-  String messageResponse = "{\"name\": \"" + deviceName +  "\", \"ipAddress\": \"" + ipAddress + "\", \"initialState\": "+ (String) ledValue + "}";
-  SerialBT.println(messageResponse);
-  Serial.print("\nSent response");
+  char wifiName [64];
+  char wifiPassword [64]; 
+  if (myObject.hasOwnProperty("ssid")) {
+      String wn;
+      wn = myObject["ssid"];
+      wn.toCharArray(wifiName, wn.length()+1);
+      Serial.print("\nssid set");
+      ssidGiven = 1;
+    }
+   if (myObject.hasOwnProperty("ssidPassword")) {
+        String wp;
+       wp = myObject["ssidPassword"];
+       wp.toCharArray(wifiPassword, wp.length()+1);
+      Serial.print("\nssid password set");
+      passGiven = 1;
+    }
+
+    if(passGiven && ssidGiven){
+      Serial.println(wifiName);
+      Serial.println(wifiPassword);
+      if(initializeWifi(wifiName, wifiPassword)){
+        uint8_t ledValue = digitalRead(BUTTON_PIN);
+        String messageResponse = "{\"name\": \"" + deviceName +  "\", \"ipAddress\": \"" + ipAddress + "\", \"initialState\": "+ (String) ledValue + "}";
+        SerialBT.println(messageResponse);
+        Serial.print("\nWifi Connected - Sent response");
+      }else{
+        String messageResponse = "error";
+        SerialBT.println(messageResponse);
+        Serial.print("\nWifi Not Connected - Sent response");
+      }
+    }
+   
+   
+  
+    
 //  String messageResponse = "{recieved_user:  test, recieved_password: alsotest}";
  
 }
@@ -161,20 +188,19 @@ void endBluetoothConnection(){
 *                        Wi-Fi                          *
 ********************************************************/
 
-void initializeWifi() {
+bool initializeWifi(char * ssid, char * ssidPassword) {
     // WiFi.mode(WIFI_STA);
-    WiFi.begin(ssid, wifiPassword);
+    WiFi.begin(ssid, ssidPassword);
     if (WiFi.waitForConnectResult() != WL_CONNECTED) {
         Serial.println("WiFi Failed");
-        while(1) {
-            delay(1000);
-        }
+        return false;
     }
     Serial.println("\nConnected to the WiFi network");
     Serial.println(WiFi.localIP());
     ipAddress = (String) WiFi.localIP().toString();
     wifiServer.begin();
     isWIFIOn = true;
+    return isWIFIOn;
 }
 
 
@@ -230,7 +256,7 @@ void setup() {
   pinMode(BUTTON_PIN, INPUT_PULLUP); // set ESP32 pin to input pull-up mode
   pinMode(LED_PIN, OUTPUT);          // set ESP32 pin to output mode
   button_state = digitalRead(BUTTON_PIN);
-  initializeWifi();
+  
 }
 
 void loop() {
