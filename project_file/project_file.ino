@@ -21,13 +21,13 @@ int responseIndex = 0;
 
 const uint ServerPort = 5679;
 WiFiServer wifiServer(ServerPort);
-const char * ssid = "ATT 2.4";
-const char * wifiPassword = "fennig1996";
+const char * ssid = "dormsecure";
+const char * wifiPassword = "wiredisfaster";
 String ipAddress = "";
 
 //timeout 300000 is 5 minutes in milliseconds
 //timeout 30000 is 1 minute in ms
-const int CONNECTION_TIMEOUT = 30000;
+const int CONNECTION_TIMEOUT = 300000;
 BluetoothSerial SerialBT;
 
 /********************************************************
@@ -119,7 +119,7 @@ void sendResponseToBluetooth(String message){
 
   }
   uint8_t ledValue = digitalRead(BUTTON_PIN);
-  String messageResponse = "{\"name\": \"" + deviceName +  "\", \"ipAddress\": \"" + ipAddress + "\", \"initialState\": " + (String) ledValue +  "}";
+  String messageResponse = "{\"name\": \"" + deviceName +  "\", \"ipAddress\": \"" + ipAddress + "\", \"initialState\": "+ (String) ledValue + "}";
   SerialBT.println(messageResponse);
   Serial.print("\nSent response");
 //  String messageResponse = "{recieved_user:  test, recieved_password: alsotest}";
@@ -180,29 +180,44 @@ void initializeWifi() {
 
 //connects, handles request, kills connection
 void handleConnections(){
-  WiFiClient client = wifiServer.available();
+  WiFiClient androidClient = wifiServer.available();
 
-  if(client){
-    while(client.connected()){
-      while(client.available() > 0){
-        JSONVar jReq = parseStringtoJSON(client.readString());
-        handleRequest(jReq, client);
+  if(androidClient){
+    while(androidClient.connected()){
+      while(androidClient.available() > 0){
+        //JSONVar jReq = parseStringtoJSON(androidClient.readStringUntil('\r'));
+        String req = androidClient.readStringUntil('\r');
+        JSONVar myObject = JSON.parse(req);
+        Serial.println(req);
+        String reqUser;
+        reqUser = myObject["username"];
+        String reqPassword;
+        reqPassword = myObject["password"];
+        int message;
+        message = myObject["message"];
+        
+        handleRequest(reqUser, reqPassword, message, androidClient);
       }
-      client.stop();
     }
   }
 }
 
 
 //Checks username, password, and handles message if correct
-void handleRequest(JSONVar req, WiFiClient client){
-  if(req["username"] == user && req["password"] == password){
-    switch((int) req["message"]){
+void handleRequest(String reqUser, String reqPass, int message, WiFiClient androidClient){
+  if(reqUser == user && reqPass == password){
+    switch(message){
       case 0:
+        digitalWrite(LED_PIN, message);
+        androidClient.println(digitalRead(LED_PIN));  
+        break;
       case 1: 
-        digitalWrite(LED_PIN, (int) req["message"]);
+        digitalWrite(LED_PIN, message);
+        androidClient.println(digitalRead(LED_PIN));  
+        break;
       default:
-        client.write(digitalRead(LED_PIN));       
+        androidClient.println(digitalRead(LED_PIN));
+        return;
     }
   }
 }
@@ -225,7 +240,6 @@ void loop() {
   if (last_button_state == HIGH && button_state == LOW) {
     SerialBT.begin(deviceName); 
     Serial.println("The device started, now you can pair it with bluetooth!");
-    digitalWrite(LED_PIN, HIGH);
     isBluetoothOn = true;
   }
   //button was pressed
